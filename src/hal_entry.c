@@ -9,6 +9,7 @@ FSP_CPP_FOOTER
 #include "IIC/IIC.h"
 #include "test/test.h"
 #include "Test_LQZ/Test_LQZ.h"
+#include "KEY/bsp_key.h"
 #if (1 == BSP_MULTICORE_PROJECT) && BSP_TZ_SECURE_BUILD
 bsp_ipc_semaphore_handle_t g_core_start_semaphore =
     {
@@ -23,7 +24,7 @@ uint8_t iic_rec = 0xff;
 void hal_entry(void)
 {
     /* TODO: add your own code here */
-    Test_Adc();
+    Test_Key(KEY1);
     /* Wake up 2nd core if this is first core and we are inside a multicore project. */
 #if (0 == _RA_CORE) && (1 == BSP_MULTICORE_PROJECT) && !BSP_TZ_NONSECURE_BUILD
 

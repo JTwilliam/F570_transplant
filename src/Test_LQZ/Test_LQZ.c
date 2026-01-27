@@ -11,12 +11,21 @@
 #include "stdio.h"
 #include "inttypes.h"
 #include "ADC/bsp_adc.h"
+#include "KEY/bsp_key.h"
+#include "LED/bsp_led.h"
 
-uint32_t pwm_period = 0;
-uint32_t pwm_freq = 0;
-uint32_t pwm_duty = 0;
-uint32_t pwm_high_level = 0;
 
+void Test_Gpt_Pwm(uint8_t A, uint8_t B, uint8_t C, uint8_t D)
+{
+    Gpt_Init();
+    uart_init(UART_PORT_4);
+
+    Gpt_Pwm_Setduty(A, B, C, D);
+
+    Get_Gpt_Pwm();
+}
+
+/*
 void Test_Gpt_Pwm(void)
 {
     Gpt_Init();
@@ -42,10 +51,10 @@ void Test_Gpt_Pwm(void)
         R_BSP_SoftwareDelay(10, BSP_DELAY_UNITS_MILLISECONDS);
     }
 }
+*/
 
 void Test_Adc(void)
 {
-
     uart_init(UART_PORT_4);
     uart_printf(UART_PORT_4, "UARTinitdone\n");
     ADC_Init();
@@ -54,7 +63,29 @@ void Test_Adc(void)
     while(1)
     {
         Read_Adc_Value();
-        R_BSP_SoftwareDelay(100, BSP_DELAY_UNITS_MILLISECONDS);
+        R_BSP_SoftwareDelay(500, BSP_DELAY_UNITS_MILLISECONDS);
     }
 
 }
+
+void Test_Key(bsp_io_port_pin_t key_pin)
+{
+    Key_CheckEvent(key_pin);
+
+
+/*    uart_init(UART_PORT_4);
+    Key_Init();
+
+    while(1)
+    {
+        if(Key_Scan(key) == KEY_ON )
+        {
+            LED_TOGGLE;
+        }
+        R_BSP_SoftwareDelay(500, BSP_DELAY_UNITS_MILLISECONDS);
+    }*/
+}
+
+
+
+
