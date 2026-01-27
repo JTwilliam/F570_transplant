@@ -14,11 +14,18 @@ extern uint32_t pwm_period;
 extern uint32_t pwm_freq;
 extern uint32_t pwm_duty;
 extern uint32_t pwm_high_level;
+extern uint32_t duty_count;
 
-extern timer_info_t gpt2_info;
+extern timer_info_t info_timer1;
+extern timer_info_t info_timer3;
+extern timer_info_t info_timer4;
+
 
 void Gpt_Init(void);
-void Gpt1_Pwm_Setduty(uint8_t duty);
-void Gpt2_Pwm_Setduty(uint8_t duty);
+void Gpt_Pwm_Setduty(uint8_t a, uint8_t b, uint8_t c, uint8_t d);
+void Get_Gpt_Pwm(void);
 
+
+//void Gpt1_Pwm_Setduty(uint8_t duty);
+//void Gpt2_Pwm_Setduty(uint8_t duty);
 #endif /* GPT_BSP_GPT_H_ */

@@ -14,12 +14,12 @@
 #include "stdbool.h"
 #include "stdint.h"
 
-uint16_t g_adc_ch0_data = 0;
 uint16_t g_adc_ch1_data = 0;
-volatile bool scan_all_complete_flag = false;
+uint16_t g_adc_ch2_data = 0;
+uint16_t g_adc_ch3_data = 0;
+uint16_t g_adc_ch4_data = 0;
 
-/*volatile bool scan_all_complete_flag = false;
-//adc_voltage_t adc_volt = {0.0, 0.0};
+volatile bool scan_all_complete_flag = false;
 
 void ADC_Init(void)
 {
@@ -43,7 +43,7 @@ void adc_callback(adc_callback_args_t *p_args)
 
 void Read_Adc_Value(void)
 {
-    double a0 , a1;
+    double v1 , v2;
 
     R_ADC_ScanStart(&g_adc0_ctrl);
 
@@ -54,20 +54,37 @@ void Read_Adc_Value(void)
 
     scan_all_complete_flag = false;
 
-    R_ADC_Read(&g_adc0_ctrl, ADC_CHANNEL_1, &g_adc_ch0_data);
-    R_ADC_Read(&g_adc0_ctrl, ADC_CHANNEL_2, &g_adc_ch1_data);
+    R_ADC_Read(&g_adc0_ctrl, ADC_CHANNEL_1, &g_adc_ch1_data);
+    R_ADC_Read(&g_adc0_ctrl, ADC_CHANNEL_2, &g_adc_ch2_data);
 
 
-    a0 = (double)g_adc_ch0_data * 3.3 / 4095.0;
-    a1 = (double)g_adc_ch1_data * 3.3 / 4095.0;
+    v1 = (double)g_adc_ch1_data * 3.3 / 4095.0;
+    v2 = (double)g_adc_ch2_data * 3.3 / 4095.0;
 
         // 打印电压值
-    uart_printf(UART_PORT_4, "CH1: %.2f V, CH2: %.2f V\r\n", a0, a1);
+    uart_printf(UART_PORT_4, "CH1: %.2f V, CH2: %.2f V\r\n", v1, v2);
 
-}*/
+}
 
 
-void ADC_Init(void)
+void Read_JoyStick_Adc_Value(uint16_t *x_axis, uint16_t *y_axis)
+{
+    while(!scan_all_complete_flag)
+    {
+        ;
+    }
+
+    scan_all_complete_flag = false;
+
+    R_ADC_Read(&g_adc0_ctrl, ADC_CHANNEL_3, x_axis); // 假设X轴连接到ADC_CHANNEL_3
+    R_ADC_Read(&g_adc0_ctrl, ADC_CHANNEL_4, y_axis); // 假设Y轴连接到ADC_CHANNEL_4
+
+    // 可以根据需要打印或处理X轴和Y轴的值
+    uart_printf(UART_PORT_4, "Joystick X: %d, Y: %d\r\n", *x_axis, *y_axis);
+}
+
+
+/*void ADC_Init(void)
 {
     fsp_err_t err;
 
@@ -119,66 +136,12 @@ void Read_Adc_Value(void)
             // 打印电压值
 
         uart_printf(UART_PORT_4,"8");
-}
-
-    /*// 1. 定义临时变量接收ADC数据
-    uint16_t temp0, temp1;
-    while(scan_all_complete_flag)
-    {
-        R_ADC_Read(&g_adc0_ctrl, ADC_CHANNEL_1, &temp0);
-        R_ADC_Read(&g_adc0_ctrl, ADC_CHANNEL_2, &temp1);
-
-        // 3. 再赋值给volatile全局变量
-        g_adc_ch0_data = temp0;
-        g_adc_ch1_data = temp1;
-
-        adc_volt.ch0_voltage = (double)g_adc_ch0_data * 3.3 / 4095.0;
-        adc_volt.ch1_voltage = (double)g_adc_ch1_data * 3.3 / 4095.0;
-
-        // 打印电压值
-        uart_printf(UART_PORT_4, "CH1: %.2f V, CH2: %.2f V\r\n", adc_volt.ch0_voltage, adc_volt.ch1_voltage);
-        scan_all_complete_flag = false;
-    }*/
-
-
-
-
-
-
-/*
-
-void Read_Adc_Value(void)
-{
-
-
-    // 等待一轮扫描完成
-    while(!scan_all_complete_flag)
-    {
-        ;
-    }
-    scan_all_complete_flag = false;
-
-    uint16_t temp0, temp1;
-    // 读取双通道原始数据
-    R_ADC_Read(&g_adc0_ctrl, ADC_CHANNEL_1, &temp0);
-    R_ADC_Read(&g_adc0_ctrl, ADC_CHANNEL_2, &temp1);
-
-    // 保存到全局变量
-    g_adc_ch0_data = temp0;
-    g_adc_ch1_data = temp1;
-
-    // 转换为实际电压值
-    adc_volt.ch0_voltage = temp0 * 3.3 / 4095.0;
-    adc_volt.ch1_voltage = temp1 * 3.3 / 4095.0;
-    uart_printf(UART_PORT_4, "CH1: %.2f V, CH2: %.2f V\r\n", adc_volt.ch0_voltage, adc_volt.ch1_voltage);
-    // 返回整个结构体
-    return;
-}
-*/
+}*/
 
 
 /*void Read_Adc_Value(void)
 {
+
     adc_voltage_t adc_volt = {0.0, 0.0};
 
         while(!scan_all_complete_flag)
