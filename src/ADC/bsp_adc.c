@@ -43,7 +43,7 @@ void adc_callback(adc_callback_args_t *p_args)
 
 void Read_Adc_Value(void)
 {
-    double v1 , v2;
+    double v1 , v2 , v3 , v4;
 
     R_ADC_ScanStart(&g_adc0_ctrl);
 
@@ -56,18 +56,21 @@ void Read_Adc_Value(void)
 
     R_ADC_Read(&g_adc0_ctrl, ADC_CHANNEL_1, &g_adc_ch1_data);
     R_ADC_Read(&g_adc0_ctrl, ADC_CHANNEL_2, &g_adc_ch2_data);
+    R_ADC_Read(&g_adc0_ctrl, ADC_CHANNEL_3, &g_adc_ch3_data);
+    R_ADC_Read(&g_adc0_ctrl, ADC_CHANNEL_4, &g_adc_ch4_data);
 
-
-    v1 = (double)g_adc_ch1_data * 3.3 / 4095.0;
-    v2 = (double)g_adc_ch2_data * 3.3 / 4095.0;
+    v1 = (double)g_adc_ch1_data ;//* 3.3 / 4095.0;
+    v2 = (double)g_adc_ch2_data ;//* 3.3 / 4095.0;
+    v3 = (double)g_adc_ch3_data ;//* 3.3 / 4095.0;
+    v4 = (double)g_adc_ch4_data ;//* 3.3 / 4095.0;
 
         // 打印电压值
-    uart_printf(UART_PORT_4, "CH1: %.2f V, CH2: %.2f V\r\n", v1, v2);
+    uart_printf(UART_PORT_4, "CH1: %.2f V, CH2: %.2f V,CH3: %.2f V, CH4: %.2f V\r\n", v1, v2,v3,v4);
 
 }
 
 
-void Read_JoyStick_Adc_Value(uint16_t *x_axis, uint16_t *y_axis)
+/*void Read_JoyStick_Adc_Value(uint16_t *x_axis, uint16_t *y_axis)
 {
     while(!scan_all_complete_flag)
     {
@@ -81,7 +84,7 @@ void Read_JoyStick_Adc_Value(uint16_t *x_axis, uint16_t *y_axis)
 
     // 可以根据需要打印或处理X轴和Y轴的值
     uart_printf(UART_PORT_4, "Joystick X: %d, Y: %d\r\n", *x_axis, *y_axis);
-}
+}*/
 
 
 /*void ADC_Init(void)
