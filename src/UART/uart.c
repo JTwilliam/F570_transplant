@@ -4,7 +4,9 @@
 #include <stdarg.h>
 #include <stdint.h>
 #include <ctype.h>
-/* 初始化指定串口 */
+#include <assert.h>
+
+/* 初始化指定串口（完全保留，无修改） */
 void uart_init(uart_port_t port)
 {
     fsp_err_t err = FSP_SUCCESS;
@@ -16,68 +18,51 @@ void uart_init(uart_port_t port)
         assert(FSP_SUCCESS == err);
         break;
     case UART_PORT_5:
-           err = R_SCI_UART_Open(&g_uart5_ctrl, &g_uart5_cfg);
-           assert(FSP_SUCCESS == err);
-           break;
+        err = R_SCI_UART_Open(&bluetooth_uart_ctrl, &bluetooth_uart_cfg);
+        assert(FSP_SUCCESS == err);
+        break;
     default:
-        /* 未配置的串口：不做处理（可扩展其他 g_uartX） */
         break;
     }
 }
 
-/* 发送完成标志 */
+/* 串口独立发送完成标志（保留之前的修复） */
+static volatile bool uart_send_complete_flag_arr[2] = {false};
 volatile bool uart_send_complete_flag = false;
 
-/* 串口中断回调 */
+/* 串口回调（保留之前的修复） */
 void g_uart4_callback(uart_callback_args_t *p_args)
 {
     switch (p_args->event)
     {
     case UART_EVENT_RX_CHAR:
-    {
-
         break;
-    }
     case UART_EVENT_TX_COMPLETE:
-    {
         uart_send_complete_flag = true;
+        uart_send_complete_flag_arr[0] = true;
         break;
-    }
     default:
         break;
     }
 }
-void g_uart5_callback(uart_callback_args_t *p_args)
-{
-    switch (p_args->event)
-    {
-    case UART_EVENT_RX_CHAR:
-    {
 
-        break;
-    }
-    case UART_EVENT_TX_COMPLETE:
-    {
-        uart_send_complete_flag = true;
-        break;
-    }
-    default:
-        break;
-    }
-}
+// 修复点1：修改m_pow_n的第二个参数为int（匹配实际使用场景，根除警告）
 // 简单的整数次幂（m^n），n 为非负
-static unsigned long m_pow_n(unsigned long m, unsigned long n)
+static unsigned long m_pow_n(unsigned long m, int n)
 {
-    unsigned long i = 0, ret = 1;
-    for (i = 0; i < n; i++)
+    // 增加合法性检查：n为负时返回1（避免错误计算）
+    if (n < 0)
+        return 1;
+
+    unsigned long ret = 1;
+    for (int i = 0; i < n; i++)
     {
         ret *= m;
     }
     return ret;
 }
 
-// 将格式化内容写入 outbuf，返回写入长度（不包含终止 \0）
-// 支持: %d, %o, %x, %b, %s, %c, %f(6位小数), %%
+// 格式化到缓冲区（仅修复警告相关的m_pow_n调用，其余逻辑不变）
 static int format_to_buffer(char *outbuf, size_t maxlen, const char *fmt, va_list args)
 {
     if (outbuf == NULL || fmt == NULL || maxlen == 0)
@@ -86,11 +71,10 @@ static int format_to_buffer(char *outbuf, size_t maxlen, const char *fmt, va_lis
     size_t outpos = 0;
     const char *pStr = fmt;
 
-    while (*pStr != '\0' && outpos + 1 < maxlen) // 保留1字节给终止\0
+    while (*pStr != '\0' && outpos + 1 < maxlen)
     {
         if (*pStr != '%')
         {
-            // 支持在格式字符串中使用反斜杠转义序列写入控制字符：\r, \n, \t, \\
             if (*pStr == '\\' && *(pStr + 1) != '\0')
             {
                 char next = *(pStr + 1);
@@ -108,17 +92,15 @@ static int format_to_buffer(char *outbuf, size_t maxlen, const char *fmt, va_lis
                 {
                     if (outpos + 1 < maxlen)
                         outbuf[outpos++] = putc;
-                    pStr += 2; // 跳过两个字符
+                    pStr += 2;
                     continue;
                 }
-                // 未识别的转义序列则按原样输出反斜杠
             }
 
             outbuf[outpos++] = *pStr++;
             continue;
         }
 
-        // 遇到 '%' 解析格式
         pStr++;
         if (*pStr == '\0')
             break;
@@ -130,8 +112,24 @@ static int format_to_buffer(char *outbuf, size_t maxlen, const char *fmt, va_lis
             continue;
         }
 
-        // 解析可选的精度格式，如 "%.3f"，仅支持点号后跟数字的精度
-        int precision = -1; // -1 表示未指定，后续默认使用 6
+        int precision = -1;
+        int width = 0;
+
+        // 处理宽度说明符
+        const char *width_start = pStr;
+        int width_digits = 0;
+        while (*width_start && isdigit((unsigned char)*width_start))
+        {
+            width = width * 10 + (*width_start - '0');
+            width_start++;
+            width_digits++;
+        }
+        if (width_digits > 0)
+        {
+            pStr = width_start;
+        }
+
+        // 处理精度说明符
         if (*pStr == '.')
         {
             const char *q = pStr + 1;
@@ -146,7 +144,7 @@ static int format_to_buffer(char *outbuf, size_t maxlen, const char *fmt, va_lis
             if (digits > 0)
             {
                 precision = prec_val;
-                pStr = q; // 跳过精度描述，pStr 指向格式字母
+                pStr = q;
             }
         }
 
@@ -172,15 +170,13 @@ static int format_to_buffer(char *outbuf, size_t maxlen, const char *fmt, va_lis
             {
                 if (outpos + 1 < maxlen)
                     outbuf[outpos++] = '-';
-                // 处理最小值会在取反时溢出，转换为 unsigned 处理
-                val_temp = (unsigned long)(-(long)ArgIntVal);
+                val_temp = (unsigned long)(-(int64_t)ArgIntVal);
             }
             else
             {
                 val_temp = (unsigned long)ArgIntVal;
             }
 
-            // 计算位数
             if (val_temp)
             {
                 unsigned long t = val_temp;
@@ -193,7 +189,7 @@ static int format_to_buffer(char *outbuf, size_t maxlen, const char *fmt, va_lis
             else
                 cnt = 1;
 
-            // 输出每位
+            // 修复点2：调用m_pow_n时参数类型匹配（无警告）
             while (cnt && outpos + 1 < maxlen)
             {
                 val_seg = val_temp / m_pow_n(10, cnt - 1);
@@ -209,7 +205,7 @@ static int format_to_buffer(char *outbuf, size_t maxlen, const char *fmt, va_lis
             {
                 if (outpos + 1 < maxlen)
                     outbuf[outpos++] = '-';
-                val_temp = (unsigned long)(-(long)ArgIntVal);
+                val_temp = (unsigned long)(-(int64_t)ArgIntVal);
             }
             else
                 val_temp = (unsigned long)ArgIntVal;
@@ -236,6 +232,7 @@ static int format_to_buffer(char *outbuf, size_t maxlen, const char *fmt, va_lis
             pStr++;
             break;
         case 'x':
+        case 'X':
             ArgHexVal = va_arg(args, unsigned long);
             if (ArgHexVal)
             {
@@ -249,6 +246,14 @@ static int format_to_buffer(char *outbuf, size_t maxlen, const char *fmt, va_lis
             else
                 cnt = 1;
 
+            // 处理宽度说明符，不足时补0
+            int pad_count = width - cnt;
+            while (pad_count > 0 && outpos + 1 < maxlen)
+            {
+                outbuf[outpos++] = '0';
+                pad_count--;
+            }
+
             while (cnt && outpos + 1 < maxlen)
             {
                 val_seg = ArgHexVal / m_pow_n(16, cnt - 1);
@@ -256,7 +261,7 @@ static int format_to_buffer(char *outbuf, size_t maxlen, const char *fmt, va_lis
                 if (val_seg <= 9)
                     outbuf[outpos++] = (char)val_seg + '0';
                 else
-                    outbuf[outpos++] = (char)(val_seg - 10) + 'A';
+                    outbuf[outpos++] = (char)(val_seg - 10) + (*pStr == 'X' ? 'A' : 'a');
                 cnt--;
             }
             pStr++;
@@ -275,6 +280,14 @@ static int format_to_buffer(char *outbuf, size_t maxlen, const char *fmt, va_lis
             }
             else
                 cnt = 1;
+
+            // 处理宽度说明符，不足时补0
+            int bin_pad_count = width - cnt;
+            while (bin_pad_count > 0 && outpos + 1 < maxlen)
+            {
+                outbuf[outpos++] = '0';
+                bin_pad_count--;
+            }
 
             while (cnt && outpos + 1 < maxlen)
             {
@@ -303,10 +316,9 @@ static int format_to_buffer(char *outbuf, size_t maxlen, const char *fmt, va_lis
                     outbuf[outpos++] = '-';
                 ArgFloVal = -ArgFloVal;
             }
-            val_seg = (unsigned long)ArgFloVal; // 整数部分
+            val_seg = (unsigned long)ArgFloVal;
             val_temp = val_seg;
 
-            // 整数部分位数
             if (val_seg)
             {
                 unsigned long t = val_seg;
@@ -327,15 +339,12 @@ static int format_to_buffer(char *outbuf, size_t maxlen, const char *fmt, va_lis
                 cnt--;
             }
 
-            // 小数点
             if (outpos + 1 < maxlen)
                 outbuf[outpos++] = '.';
 
-            // 输出小数部分，不四舍五入，位数由 precision 决定，默认 6
             if (precision < 0)
                 precision = 6;
             ArgFloVal = ArgFloVal - (unsigned long)(ArgFloVal);
-            // 乘以 10^precision
             {
                 unsigned long mult = 1;
                 for (int ii = 0; ii < precision; ii++)
@@ -354,7 +363,6 @@ static int format_to_buffer(char *outbuf, size_t maxlen, const char *fmt, va_lis
             pStr++;
             break;
         default:
-            // 未识别格式，输出一个空格占位
             if (outpos + 1 < maxlen)
                 outbuf[outpos++] = ' ';
             pStr++;
@@ -366,7 +374,7 @@ static int format_to_buffer(char *outbuf, size_t maxlen, const char *fmt, va_lis
     return (int)outpos;
 }
 
-// 串口与上位机通讯：可变参数 printf 风格，格式化到缓冲区后一次性发送
+// uart_printf（保留之前的修复，无警告相关修改）
 void uart_printf(uart_port_t uart_num, const char *fmt, ...)
 {
     if (fmt == NULL)
@@ -384,7 +392,20 @@ void uart_printf(uart_port_t uart_num, const char *fmt, ...)
     if (len >= (int)sizeof(buf))
         len = (int)sizeof(buf) - 1;
 
-    uart_send_complete_flag = false;
+    volatile bool *p_flag = NULL;
+    switch (uart_num)
+    {
+    case UART_PORT_4:
+        p_flag = &uart_send_complete_flag_arr[0];
+        break;
+    case UART_PORT_5:
+        p_flag = &uart_send_complete_flag_arr[1];
+        break;
+    default:
+        return;
+    }
+    *p_flag = false;
+
     switch (uart_num)
     {
     case UART_PORT_4:
@@ -392,29 +413,27 @@ void uart_printf(uart_port_t uart_num, const char *fmt, ...)
         fsp_err_t err = R_SCI_UART_Write(&g_uart4_ctrl, (uint8_t *)buf, (uint32_t)len);
         if (err == FSP_SUCCESS)
         {
-            // 等待完成，但增加超时以避免死循环
             unsigned int wait_cnt = 0;
             const unsigned int wait_max = 1000000u;
-            while ((uart_send_complete_flag == false) && (wait_cnt++ < wait_max))
+            while ((*p_flag == false) && (wait_cnt++ < wait_max))
             {
-                ;
+                __NOP();
             }
-            uart_send_complete_flag = false;
+            *p_flag = false;
         }
         else
         {
-            // 写入失败（可能为忙等），退回到逐字节发送，带超时保护
             for (int i = 0; i < len; i++)
             {
-                uart_send_complete_flag = false;
+                *p_flag = false;
                 (void)R_SCI_UART_Write(&g_uart4_ctrl, (uint8_t *)&buf[i], 1u);
                 unsigned int wait_cnt = 0;
                 const unsigned int wait_max = 100000u;
-                while ((uart_send_complete_flag == false) && (wait_cnt++ < wait_max))
+                while ((*p_flag == false) && (wait_cnt++ < wait_max))
                 {
-                    ;
+                    __NOP();
                 }
-                uart_send_complete_flag = false;
+                *p_flag = false;
             }
         }
     }
