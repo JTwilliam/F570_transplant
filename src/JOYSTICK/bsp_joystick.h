@@ -13,6 +13,7 @@
 #include <string.h>
 #include <math.h>
 
+
 /************************ 核心配置宏定义（手柄侧摇杆控制） ************************/
 // 摇杆ADC通道映射（与硬件绑定）
 #define ADC_CH_LEFT_X    ADC_CHANNEL_1   // 左X→偏航（原始ADC：0~4095）

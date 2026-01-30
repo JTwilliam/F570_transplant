@@ -35,6 +35,7 @@ uint16_t ADC_Sliding_Filter(uint8_t axis, uint16_t new_val)
     return (uint16_t)(sum / 5); // 滤波后仍为0-4095
 }
 
+
 void ADC_Wait_ScanDone(void)
 {
     adc_status_t adc_status;
@@ -189,4 +190,6 @@ void Joystick_Get_Cmd(Joystick_Cmd_t *cmd)
 void Joystick_Send_Cmd(void)
 {
     // 若无需保留发送逻辑，可留空或删除
+
+    
 }

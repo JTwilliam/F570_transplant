@@ -17,10 +17,10 @@ void uart_init(uart_port_t port)
         err = R_SCI_UART_Open(&g_uart4_ctrl, &g_uart4_cfg);
         assert(FSP_SUCCESS == err);
         break;
-    case UART_PORT_5:
-           err = R_SCI_UART_Open(&g_uart5_ctrl, &g_uart5_cfg);
-           assert(FSP_SUCCESS == err);
-           break;
+//    case UART_PORT_5:
+//        err = R_SCI_UART_Open(&bluetooth_uart_ctrl, &bluetooth_uart_cfg);
+//        assert(FSP_SUCCESS == err);
+//        break;
     default:
         break;
     }
@@ -45,27 +45,14 @@ void g_uart4_callback(uart_callback_args_t *p_args)
         break;
     }
 }
-void g_uart5_callback(uart_callback_args_t *p_args)
-{
-    switch (p_args->event)
-    {
-    case UART_EVENT_RX_CHAR:
-        break;
-    case UART_EVENT_TX_COMPLETE:
-        uart_send_complete_flag = true;
-        uart_send_complete_flag_arr[1] = true;
-        break;
-    default:
-        break;
-    }
-}
 
 // 修复点1：修改m_pow_n的第二个参数为int（匹配实际使用场景，根除警告）
 // 简单的整数次幂（m^n），n 为非负
 static unsigned long m_pow_n(unsigned long m, int n)
 {
     // 增加合法性检查：n为负时返回1（避免错误计算）
-    if (n < 0) return 1;
+    if (n < 0)
+        return 1;
 
     unsigned long ret = 1;
     for (int i = 0; i < n; i++)
@@ -126,6 +113,23 @@ static int format_to_buffer(char *outbuf, size_t maxlen, const char *fmt, va_lis
         }
 
         int precision = -1;
+        int width = 0;
+
+        // 处理宽度说明符
+        const char *width_start = pStr;
+        int width_digits = 0;
+        while (*width_start && isdigit((unsigned char)*width_start))
+        {
+            width = width * 10 + (*width_start - '0');
+            width_start++;
+            width_digits++;
+        }
+        if (width_digits > 0)
+        {
+            pStr = width_start;
+        }
+
+        // 处理精度说明符
         if (*pStr == '.')
         {
             const char *q = pStr + 1;
@@ -228,6 +232,7 @@ static int format_to_buffer(char *outbuf, size_t maxlen, const char *fmt, va_lis
             pStr++;
             break;
         case 'x':
+        case 'X':
             ArgHexVal = va_arg(args, unsigned long);
             if (ArgHexVal)
             {
@@ -241,6 +246,14 @@ static int format_to_buffer(char *outbuf, size_t maxlen, const char *fmt, va_lis
             else
                 cnt = 1;
 
+            // 处理宽度说明符，不足时补0
+            int pad_count = width - cnt;
+            while (pad_count > 0 && outpos + 1 < maxlen)
+            {
+                outbuf[outpos++] = '0';
+                pad_count--;
+            }
+
             while (cnt && outpos + 1 < maxlen)
             {
                 val_seg = ArgHexVal / m_pow_n(16, cnt - 1);
@@ -248,7 +261,7 @@ static int format_to_buffer(char *outbuf, size_t maxlen, const char *fmt, va_lis
                 if (val_seg <= 9)
                     outbuf[outpos++] = (char)val_seg + '0';
                 else
-                    outbuf[outpos++] = (char)(val_seg - 10) + 'A';
+                    outbuf[outpos++] = (char)(val_seg - 10) + (*pStr == 'X' ? 'A' : 'a');
                 cnt--;
             }
             pStr++;
@@ -267,6 +280,14 @@ static int format_to_buffer(char *outbuf, size_t maxlen, const char *fmt, va_lis
             }
             else
                 cnt = 1;
+
+            // 处理宽度说明符，不足时补0
+            int bin_pad_count = width - cnt;
+            while (bin_pad_count > 0 && outpos + 1 < maxlen)
+            {
+                outbuf[outpos++] = '0';
+                bin_pad_count--;
+            }
 
             while (cnt && outpos + 1 < maxlen)
             {
