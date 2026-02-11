@@ -171,10 +171,10 @@
     <node id="board.clock.canfdclk.source" option="board.clock.canfdclk.source.disabled"/>
     <node id="board.clock.cecclk.source" option="board.clock.cecclk.source.disabled"/>
     <node id="board.clock.iclk.div" option="board.clock.iclk.div.1"/>
-    <node id="board.clock.pclka.div" option="board.clock.pclka.div.8"/>
-    <node id="board.clock.pclkb.div" option="board.clock.pclkb.div.8"/>
+    <node id="board.clock.pclka.div" option="board.clock.pclka.div.2"/>
+    <node id="board.clock.pclkb.div" option="board.clock.pclkb.div.4"/>
     <node id="board.clock.pclkc.div" option="board.clock.pclkc.div.4"/>
-    <node id="board.clock.pclkd.div" option="board.clock.pclkd.div.8"/>
+    <node id="board.clock.pclkd.div" option="board.clock.pclkd.div.2"/>
     <node id="board.clock.bclk.div" option="board.clock.bclk.div.2"/>
     <node id="board.clock.bclkout.div" option="board.clock.bclkout.div.2"/>
     <node id="board.clock.fclk.div" option="board.clock.fclk.div.4"/>
@@ -232,10 +232,6 @@
       <description>A/D Converter</description>
       <originalPack>Renesas.RA.6.3.0.pack</originalPack>
     </component>
-    <component apiversion="" class="HAL Drivers" condition="" group="all" subgroup="r_dmac" variant="" vendor="Renesas" version="6.3.0">
-      <description>Direct Memory Access Controller</description>
-      <originalPack>Renesas.RA.6.3.0.pack</originalPack>
-    </component>
     <component apiversion="" class="HAL Drivers" condition="" group="all" subgroup="r_elc" variant="" vendor="Renesas" version="6.3.0">
       <description>Event Link Controller</description>
       <originalPack>Renesas.RA.6.3.0.pack</originalPack>
@@ -259,6 +255,10 @@
     <component apiversion="" class="CMSIS" condition="" group="Main" subgroup="CoreM" variant="" vendor="Arm" version="6.1.0+fsp.6.3.0">
       <description>Arm CMSIS Version 6 - Core (M)</description>
       <originalPack>Arm.CMSIS6.6.1.0+fsp.6.3.0.pack</originalPack>
+    </component>
+    <component apiversion="" class="HAL Drivers" condition="" group="all" subgroup="r_dtc" variant="" vendor="Renesas" version="6.3.0">
+      <description>Data Transfer Controller</description>
+      <originalPack>Renesas.RA.6.3.0.pack</originalPack>
     </component>
   </raComponentSelection>
   <raElcConfiguration/>
@@ -319,8 +319,8 @@
     <module id="module.driver.timer_on_gpt.2054170720">
       <property id="module.driver.timer.name" value="g_timer1"/>
       <property id="module.driver.timer.channel" value="1"/>
-      <property id="module.driver.timer.mode" value="module.driver.timer.mode.mode_periodic"/>
-      <property id="module.driver.timer.period" value="50"/>
+      <property id="module.driver.timer.mode" value="module.driver.timer.mode.mode_pwm"/>
+      <property id="module.driver.timer.period" value="333"/>
       <property id="module.driver.timer.compare_match.a.status" value="module.driver.timer.compare_match.a.status.disabled"/>
       <property id="module.driver.timer.compare_match.a.value" value="0x10000"/>
       <property id="module.driver.timer.compare_match.b.status" value="module.driver.timer.compare_match.b.status.disabled"/>
@@ -333,7 +333,7 @@
       <property id="module.driver.timer.compare_match.e.value" value="0x10000"/>
       <property id="module.driver.timer.compare_match.f.status" value="module.driver.timer.compare_match.f.status.disabled"/>
       <property id="module.driver.timer.compare_match.f.value" value="0x10000"/>
-      <property id="module.driver.timer.unit" value="module.driver.timer.unit.unit_frequency_khz"/>
+      <property id="module.driver.timer.unit" value="module.driver.timer.unit.unit_period_raw_counts"/>
       <property id="module.driver.timer.gtior.gtioa.initial_output_level" value="module.driver.timer.gtior.gtioa.initial_output_level.low"/>
       <property id="module.driver.timer.gtior.gtioa.cycle_end_output_level" value="module.driver.timer.gtior.gtioa.cycle_end_output_level.retain"/>
       <property id="module.driver.timer.gtior.gtioa.compare_match_output_level" value="module.driver.timer.gtior.gtioa.compare_match_output_level.retain"/>
@@ -343,7 +343,7 @@
       <property id="module.driver.timer.gtior.gtiob.compare_match_output_level" value="module.driver.timer.gtior.gtiob.compare_match_output_level.retain"/>
       <property id="module.driver.timer.gtior.gtiob.count_stop_retain" value="module.driver.timer.gtior.gtiob.count_stop_retain.disabled"/>
       <property id="module.driver.timer.gtior.custom_waveform_enable" value="module.driver.timer.gtior.custom_waveform_enable.disabled"/>
-      <property id="module.driver.timer.duty_cycle" value="50"/>
+      <property id="module.driver.timer.duty_cycle" value="0"/>
       <property id="module.driver.timer.gtioca_output_enabled" value="module.driver.timer.gtioca_output_enabled.true"/>
       <property id="module.driver.timer.gtioca_stop_level" value="module.driver.timer.gtioca_stop_level.pin_level_low"/>
       <property id="module.driver.timer.gtiocb_output_enabled" value="module.driver.timer.gtiocb_output_enabled.true"/>
@@ -386,7 +386,7 @@
       <property id="module.driver.timer.name" value="g_timer3"/>
       <property id="module.driver.timer.channel" value="3"/>
       <property id="module.driver.timer.mode" value="module.driver.timer.mode.mode_periodic"/>
-      <property id="module.driver.timer.period" value="50"/>
+      <property id="module.driver.timer.period" value="333"/>
       <property id="module.driver.timer.compare_match.a.status" value="module.driver.timer.compare_match.a.status.disabled"/>
       <property id="module.driver.timer.compare_match.a.value" value="0x10000"/>
       <property id="module.driver.timer.compare_match.b.status" value="module.driver.timer.compare_match.b.status.disabled"/>
@@ -399,7 +399,7 @@
       <property id="module.driver.timer.compare_match.e.value" value="0x10000"/>
       <property id="module.driver.timer.compare_match.f.status" value="module.driver.timer.compare_match.f.status.disabled"/>
       <property id="module.driver.timer.compare_match.f.value" value="0x10000"/>
-      <property id="module.driver.timer.unit" value="module.driver.timer.unit.unit_frequency_khz"/>
+      <property id="module.driver.timer.unit" value="module.driver.timer.unit.unit_period_raw_counts"/>
       <property id="module.driver.timer.gtior.gtioa.initial_output_level" value="module.driver.timer.gtior.gtioa.initial_output_level.low"/>
       <property id="module.driver.timer.gtior.gtioa.cycle_end_output_level" value="module.driver.timer.gtior.gtioa.cycle_end_output_level.retain"/>
       <property id="module.driver.timer.gtior.gtioa.compare_match_output_level" value="module.driver.timer.gtior.gtioa.compare_match_output_level.retain"/>
@@ -409,7 +409,7 @@
       <property id="module.driver.timer.gtior.gtiob.compare_match_output_level" value="module.driver.timer.gtior.gtiob.compare_match_output_level.retain"/>
       <property id="module.driver.timer.gtior.gtiob.count_stop_retain" value="module.driver.timer.gtior.gtiob.count_stop_retain.disabled"/>
       <property id="module.driver.timer.gtior.custom_waveform_enable" value="module.driver.timer.gtior.custom_waveform_enable.disabled"/>
-      <property id="module.driver.timer.duty_cycle" value="50"/>
+      <property id="module.driver.timer.duty_cycle" value="0"/>
       <property id="module.driver.timer.gtioca_output_enabled" value="module.driver.timer.gtioca_output_enabled.true"/>
       <property id="module.driver.timer.gtioca_stop_level" value="module.driver.timer.gtioca_stop_level.pin_level_low"/>
       <property id="module.driver.timer.gtiocb_output_enabled" value="module.driver.timer.gtiocb_output_enabled.true"/>
@@ -425,8 +425,8 @@
       <property id="module.driver.timer.gtiocb_filter" value="module.driver.timer.gtioc_filter.gtioc_filter_none"/>
       <property id="module.driver.timer.gtioca_polarity" value="module.driver.timer.gtioc_polarity.normal"/>
       <property id="module.driver.timer.gtiocb_polarity" value="module.driver.timer.gtioc_polarity.normal"/>
-      <property id="module.driver.timer.p_callback" value="NULL"/>
-      <property id="module.driver.timer.ipl" value="_disabled"/>
+      <property id="module.driver.timer.p_callback" value="dshot_gpt_update_callback"/>
+      <property id="module.driver.timer.ipl" value="board.icu.common.irq.priority4"/>
       <property id="module.driver.timer.capture_a_ipl" value="_disabled"/>
       <property id="module.driver.timer.capture_b_ipl" value="_disabled"/>
       <property id="module.driver.timer.compare_match_c_ipl" value="_disabled"/>
@@ -482,7 +482,7 @@
       <property id="module.driver.adc.unit" value="0"/>
       <property id="module.driver.adc.resolution" value="module.driver.adc.resolution.resolution_12_bit"/>
       <property id="module.driver.adc.alignment" value="module.driver.adc.alignment.alignment_right"/>
-      <property id="module.driver.adc.clearing" value="module.driver.adc.clearing.clear_after_read_off"/>
+      <property id="module.driver.adc.clearing" value="module.driver.adc.clearing.clear_after_read_on"/>
       <property id="module.driver.adc.mode" value="module.driver.adc.mode.mode_single_scan"/>
       <property id="module.driver.adc.mode.dt" value="module.driver.adc.mode.dt.disabled"/>
       <property id="module.driver.adc.scan_mask" value="module.driver.adc.scan_mask.channel_1,module.driver.adc.scan_mask.channel_2,module.driver.adc.scan_mask.channel_3,module.driver.adc.scan_mask.channel_4"/>
@@ -514,42 +514,8 @@
       <property id="module.driver.adc.window_b_ipl" value="_disabled"/>
       <property id="module.driver.adc.adbuf" value="module.driver.adc.adbuf.disabled"/>
     </module>
-    <module id="module.driver.transfer_on_dmac.835621655">
-      <property id="module.driver.transfer.name" value="g_dma1_pwm"/>
-      <property id="module.driver.transfer.channel" value="1"/>
-      <property id="module.driver.transfer.mode" value="module.driver.transfer.mode.mode_repeat_block"/>
-      <property id="module.driver.transfer.size" value="module.driver.transfer.size.size_2_byte"/>
-      <property id="module.driver.transfer.dest_addr_mode" value="module.driver.transfer.dest_addr_mode.addr_mode_incremented"/>
-      <property id="module.driver.transfer.src_addr_mode" value="module.driver.transfer.src_addr_mode.addr_mode_incremented"/>
-      <property id="module.driver.transfer.repeat_area" value="module.driver.transfer.repeat_area.repeat_area_source"/>
-      <property id="module.driver.transfer.length" value="2"/>
-      <property id="module.driver.transfer.num_blocks" value="1"/>
-      <property id="module.driver.transfer.activation_event" value="_signal.event.gpt1.counter.overflow"/>
-      <property id="module.driver.transfer.p_callback" value="dma1_callback"/>
-      <property id="module.driver.transfer.ipl" value="board.icu.common.irq.priority5"/>
-      <property id="module.driver.transfer.interrupt" value="module.driver.transfer.interrupt.interrupt_end"/>
-      <property id="module.driver.transfer.offset" value="1"/>
-      <property id="module.driver.transfer.src.buffer" value="2"/>
-    </module>
     <module id="module.driver.elc_on_elc.1992646129">
       <property id="module.driver.elc.name" value="g_elc"/>
-    </module>
-    <module id="module.driver.transfer_on_dmac.1926022369">
-      <property id="module.driver.transfer.name" value="g_dma2_pwm"/>
-      <property id="module.driver.transfer.channel" value="2"/>
-      <property id="module.driver.transfer.mode" value="module.driver.transfer.mode.mode_repeat_block"/>
-      <property id="module.driver.transfer.size" value="module.driver.transfer.size.size_2_byte"/>
-      <property id="module.driver.transfer.dest_addr_mode" value="module.driver.transfer.dest_addr_mode.addr_mode_incremented"/>
-      <property id="module.driver.transfer.src_addr_mode" value="module.driver.transfer.src_addr_mode.addr_mode_incremented"/>
-      <property id="module.driver.transfer.repeat_area" value="module.driver.transfer.repeat_area.repeat_area_source"/>
-      <property id="module.driver.transfer.length" value="2"/>
-      <property id="module.driver.transfer.num_blocks" value="1"/>
-      <property id="module.driver.transfer.activation_event" value="_signal.event.gpt1.counter.overflow"/>
-      <property id="module.driver.transfer.p_callback" value="dma2_callback"/>
-      <property id="module.driver.transfer.ipl" value="board.icu.common.irq.priority5"/>
-      <property id="module.driver.transfer.interrupt" value="module.driver.transfer.interrupt.interrupt_end"/>
-      <property id="module.driver.transfer.offset" value="1"/>
-      <property id="module.driver.transfer.src.buffer" value="2"/>
     </module>
     <module id="module.driver.timer_on_gpt.722655137">
       <property id="module.driver.timer.name" value="g_timer4"/>
@@ -617,6 +583,32 @@
       <property id="module.driver.timer.gtioca_disable_setting" value="module.driver.timer.gtioca_disable_setting.gtioc_disable_prohibited"/>
       <property id="module.driver.timer.gtiocb_disable_setting" value="module.driver.timer.gtiocb_disable_setting.gtioc_disable_prohibited"/>
     </module>
+    <module id="module.driver.transfer_on_dtc.1633883697">
+      <property id="module.driver.transfer.name" value="g_transfer0"/>
+      <property id="module.driver.transfer.mode" value="module.driver.transfer.mode.mode_block"/>
+      <property id="module.driver.transfer.size" value="module.driver.transfer.size.size_2_byte"/>
+      <property id="module.driver.transfer.dest_addr_mode" value="module.driver.transfer.dest_addr_mode.addr_mode_incremented"/>
+      <property id="module.driver.transfer.src_addr_mode" value="module.driver.transfer.src_addr_mode.addr_mode_fixed"/>
+      <property id="module.driver.transfer.repeat_area" value="module.driver.transfer.repeat_area.repeat_area_source"/>
+      <property id="module.driver.transfer.interrupt" value="module.driver.transfer.interrupt.interrupt_end"/>
+      <property id="module.driver.transfer.length" value="4"/>
+      <property id="module.driver.transfer.num_blocks" value="1"/>
+      <property id="module.driver.transfer.number_of_descriptors" value="1"/>
+      <property id="module.driver.transfer.activation_source" value="_signal.event.adc0.scan.end"/>
+    </module>
+    <module id="module.driver.transfer_on_dtc.467722546">
+      <property id="module.driver.transfer.name" value="g_transfer1"/>
+      <property id="module.driver.transfer.mode" value="module.driver.transfer.mode.mode_block"/>
+      <property id="module.driver.transfer.size" value="module.driver.transfer.size.size_2_byte"/>
+      <property id="module.driver.transfer.dest_addr_mode" value="module.driver.transfer.dest_addr_mode.addr_mode_fixed"/>
+      <property id="module.driver.transfer.src_addr_mode" value="module.driver.transfer.src_addr_mode.addr_mode_incremented"/>
+      <property id="module.driver.transfer.repeat_area" value="module.driver.transfer.repeat_area.repeat_area_source"/>
+      <property id="module.driver.transfer.interrupt" value="module.driver.transfer.interrupt.interrupt_end"/>
+      <property id="module.driver.transfer.length" value="4"/>
+      <property id="module.driver.transfer.num_blocks" value="1"/>
+      <property id="module.driver.transfer.number_of_descriptors" value="1"/>
+      <property id="module.driver.transfer.activation_source" value="_signal.event.gpt3.counter.overflow"/>
+    </module>
     <context id="_hal.0">
       <stack module="module.driver.ioport_on_ioport.0"/>
       <stack module="module.driver.uart_on_sci_uart.351463128"/>
@@ -625,19 +617,16 @@
       <stack module="module.driver.timer_on_gpt.257950745"/>
       <stack module="module.driver.uart_on_sci_uart.1186785670"/>
       <stack module="module.driver.adc_on_adc.410004202"/>
-      <stack module="module.driver.transfer_on_dmac.835621655"/>
       <stack module="module.driver.elc_on_elc.1992646129"/>
-      <stack module="module.driver.transfer_on_dmac.1926022369"/>
       <stack module="module.driver.timer_on_gpt.722655137"/>
+      <stack module="module.driver.transfer_on_dtc.1633883697"/>
+      <stack module="module.driver.transfer_on_dtc.467722546"/>
     </context>
     <config id="config.driver.adc">
       <property id="config.driver.adc.param_checking_enable" value="config.driver.adc.param_checking_enable.bsp"/>
     </config>
     <config id="config.driver.elc">
       <property id="config.driver.elc.checking" value="config.driver.elc.checking.system"/>
-    </config>
-    <config id="config.driver.dmac">
-      <property id="config.driver.dmac.param_checking_enable" value="config.driver.dmac.param_checking_enable.bsp"/>
     </config>
     <config id="config.driver.sci_uart">
       <property id="config.driver.sci_uart.param_checking_enable" value="config.driver.sci_uart.param_checking_enable.bsp"/>
@@ -660,6 +649,10 @@
       <property id="config.driver.sci_i2c.param_checking_enable" value="config.driver.sci_i2c.param_checking_enable.bsp"/>
       <property id="config.driver.sci_i2c.dtc_enable" value="config.driver.sci_i2c.dtc_enable.disabled"/>
       <property id="config.driver.sci_i2c.addr_mode_10_bit_enable" value="config.driver.sci_i2c.addr_mode_10_bit_enable.disabled"/>
+    </config>
+    <config id="config.driver.dtc">
+      <property id="config.driver.dtc.param_checking_enable" value="config.driver.dtc.param_checking_enable.bsp"/>
+      <property id="config.driver.dtc.vector_table" value=".fsp_dtc_vector_table"/>
     </config>
   </raModuleConfiguration>
   <raPinConfiguration>

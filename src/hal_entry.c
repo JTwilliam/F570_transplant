@@ -9,6 +9,8 @@ FSP_CPP_FOOTER
 #include "IIC/IIC.h"
 #include "test/test.h"
 #include "Test_LQZ/Test_LQZ.h"
+#include "ADC/bsp_adc.h"
+#include "JOYSTICK/bsp_joystick.h"
 #include "KEY/bsp_key.h"
 #if (1 == BSP_MULTICORE_PROJECT) && BSP_TZ_SECURE_BUILD
 bsp_ipc_semaphore_handle_t g_core_start_semaphore =
@@ -24,7 +26,14 @@ uint8_t iic_rec = 0xff;
 void hal_entry(void)
 {
     /* TODO: add your own code here */
-    Test_Key(KEY1);
+    dshotMotorVal_t m1 = {.Telemetry=0, .throttle=1000};
+    dshotMotorVal_t m2 = {.Telemetry=0, .throttle=2047};
+    dshotMotorVal_t m3 = {.Telemetry=1, .throttle=0};
+    dshotMotorVal_t m4 = {.Telemetry=1, .throttle=500};
+
+    uart_init(UART_PORT_4);
+    motor_test(m1, m2, m3, m4);
+
     /* Wake up 2nd core if this is first core and we are inside a multicore project. */
 #if (0 == _RA_CORE) && (1 == BSP_MULTICORE_PROJECT) && !BSP_TZ_NONSECURE_BUILD
 

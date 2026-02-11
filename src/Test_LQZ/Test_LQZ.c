@@ -17,8 +17,34 @@
 #include "DSHOT/bsp_dshot.h"
 
 
+void motor_test(dshotMotorVal_t m1, dshotMotorVal_t m2, dshotMotorVal_t m3, dshotMotorVal_t m4)
+{
+    // 1. 油门值限幅（0~2047）
+    m1.throttle = (m1.throttle > 2047) ? 2047 : m1.throttle;
+    m2.throttle = (m2.throttle > 2047) ? 2047 : m2.throttle;
+    m3.throttle = (m3.throttle > 2047) ? 2047 : m3.throttle;
+    m4.throttle = (m4.throttle > 2047) ? 2047 : m4.throttle;
 
+    // 2. 保存原始油门值（用于对比）
+    uint16_t m1_raw = m1.throttle;
+    uint16_t m2_raw = m2.throttle;
+    uint16_t m3_raw = m3.throttle;
+    uint16_t m4_raw = m4.throttle;
+
+    // 3. 仅执行一次Dshot编码（核心：删除pwmWriteDigital中的重复编码）
+    uint16_t m1_encoded = DshotDecode(m1);
+    uint16_t m2_encoded = DshotDecode(m2);
+    uint16_t m3_encoded = DshotDecode(m3);
+    uint16_t m4_encoded = DshotDecode(m4);
+
+    // 4. 增强打印：原始值 + 编码后值（方便对比理论值）
+    uart_printf(UART_PORT_4, "Motor1:%4d | 0x%04X\n", m1_raw, m1_encoded);
+    uart_printf(UART_PORT_4, "Motor2:%4d | 0x%04X\n", m2_raw, m2_encoded);
+    uart_printf(UART_PORT_4, "Motor3:%4d | 0x%04X\n", m3_raw, m3_encoded);
+    uart_printf(UART_PORT_4, "Motor4:%4d | 0x%04X\n", m4_raw, m4_encoded);
+}
 //void motor_test(dshotMotorVal_t m1, dshotMotorVal_t m2, dshotMotorVal_t m3, dshotMotorVal_t m4)经过dshot编码后要发送的的数据用串口打印出来
+/*
 void motor_test(dshotMotorVal_t m1, dshotMotorVal_t m2, dshotMotorVal_t m3, dshotMotorVal_t m4)
 {
     // 油门值限幅（0~2047）
@@ -39,6 +65,7 @@ void motor_test(dshotMotorVal_t m1, dshotMotorVal_t m2, dshotMotorVal_t m3, dsho
     uart_printf(UART_PORT_4, "Motor 3: %4X\n", m3.throttle);
     uart_printf(UART_PORT_4, "Motor 4: %4X\n", m4.throttle);
 }
+*/
 
 
 
