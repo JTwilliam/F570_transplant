@@ -4,9 +4,8 @@
 uint32_t gpt4_period = 0;
 volatile uint8_t g_esc_index = ESC_CMD_BUF_LEN;
 uint16_t g_esc_cmd[4][ESC_CMD_BUF_LEN] = {0};
-
 /*
- * @brief GPT周期中断回调（Dshot位发送）
+ * @brief GPT周期中断回调（Dshot位发送
  */
 void dshot_gpt_update_callback(timer_callback_args_t *p_args)
 {
