@@ -11,6 +11,7 @@
 !src/test/
 !src/Test_LQZ/
 !src/UART/
+!src/DSHOT/
 !src/KEY/
 !src/JOYSTICK/
 !src/ADC/**
@@ -24,6 +25,7 @@
 !src/Test_LQZ/**
 !src/UART/**
 !src/KEY/**
+!src/DSHOT/**
 !src/JOYSTICK/**
 !src/hal_entry.c
 !src/hal_warmstart.c
