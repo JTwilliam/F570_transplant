@@ -17,6 +17,7 @@
 // ************************ 核心配置 ************************
 #define DSHOT_GPT1_INSTANCE    &g_timer1_ctrl // FSP生成的GPT1控制块
 #define DSHOT_GPT3_INSTANCE    &g_timer3_ctrl // FSP生成的GPT3控制块
+
 #define DSHOT_GPT_PERIOD_VALUE  3999U          // Dshot300周期（120MHz/300000 -1）
 #define ESC_CMD_BUF_LEN        16U            // Dshot缓冲区长度
 // ********************************************************
@@ -24,6 +25,11 @@
 // Dshot位定义（75%=BIT1，37.5%=BIT0）
 #define ESC_BIT_1               (DSHOT_GPT_PERIOD_VALUE * 3 / 4)
 #define ESC_BIT_0               (DSHOT_GPT_PERIOD_VALUE * 3 / 8)
+
+// DSHOT输入捕获相关声明（GPT0作为电调端输入捕获）
+#define DSHOT_CAPTURE_BUF_LEN 16
+void gpt0_dshot_capture_callback(timer_callback_args_t *p_args);
+void dshot_capture_task(void);
 
 // 全局变量声明
 extern uint32_t gpt4_period;

@@ -58,6 +58,11 @@ typedef struct
 void motor_init(void);
 void pwmWriteDigital(dshotMotorVal_t m1, dshotMotorVal_t m2, dshotMotorVal_t m3, dshotMotorVal_t m4);
 uint16_t DshotDecode(dshotMotorVal_t val);
+uint16_t DshotEncode(dshotMotorVal_t val);
+void decode_and_print_dshot(uint16_t packet);
+void set_and_send_dshot(uint16_t throttle, uint8_t telemetry);
+uint8_t DshotPacketDecode(uint16_t packet, dshotMotorVal_t *out_val);
+
 
 // 全局接口实例
 extern MotorInterface_t UserDshotMotor;

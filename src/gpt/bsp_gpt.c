@@ -1,25 +1,95 @@
-#include "bsp_gpt.h"
 
-// 全局变量定义（仅保留必要变量，删除所有未定义的pwm_xxx）
+#include "bsp_gpt.h"
+#include "UART/uart.h"
+#include "DSHOT/bsp_dshot.h"
+
 uint32_t gpt4_period = 0;
 volatile uint8_t g_esc_index = ESC_CMD_BUF_LEN;
 uint16_t g_esc_cmd[4][ESC_CMD_BUF_LEN] = {0};
-/*
- * @brief GPT周期中断回调（Dshot位发送
- */
+
+#define DSHOT_CAPTURE_BUF_LEN 16
+volatile uint16_t dshot_capture_buf[DSHOT_CAPTURE_BUF_LEN] = {0};
+volatile uint8_t dshot_capture_index = 0;
+volatile uint8_t dshot_frame_ready = 0;
+
+extern void decode_and_print_dshot(uint16_t packet);
+
+// 启动GPT1/GPT3中断
+fsp_err_t bsp_gpt_base_start_it(void)
+{
+    R_GPT_Start(DSHOT_GPT1_INSTANCE);
+    return R_GPT_Start(DSHOT_GPT3_INSTANCE);
+}
+
+// 停止GPT1/GPT3中断
+fsp_err_t bsp_gpt_base_stop_it(void)
+{
+    R_GPT_Stop(DSHOT_GPT1_INSTANCE);
+    return R_GPT_Stop(DSHOT_GPT3_INSTANCE);
+}
+
+
+//-------------------- GPT0 DSHOT输入捕获回调（软件交替记录上升沿和下降沿） --------------------
+// 回调中交替记录上升沿和下降沿，下降沿时计算高电平宽度
+void gpt0_dshot_capture_callback(timer_callback_args_t *p_args)
+{
+    static uint32_t t_rise = 0;
+    static uint32_t t_fall = 0;
+    static uint8_t last_is_rise = 1; // 1:等待上升沿, 0:等待下降沿
+    uint32_t gpt0_period = 0;
+    uint32_t width = 0;
+
+    if (p_args->event == TIMER_EVENT_CAPTURE_A)
+    {
+        if (last_is_rise)
+        {
+            t_rise = p_args->capture;
+            last_is_rise = 0;
+        }
+        else
+        {
+            t_fall = p_args->capture;
+            width = (t_fall >= t_rise) ? (t_fall - t_rise) : (gpt0_period - t_rise + t_fall);
+            if (dshot_capture_index < DSHOT_CAPTURE_BUF_LEN)
+            {
+                dshot_capture_buf[dshot_capture_index++] = (uint16_t)width;
+            }
+            if (dshot_capture_index >= DSHOT_CAPTURE_BUF_LEN)
+            {
+                dshot_capture_index = 0;
+                dshot_frame_ready = 1;
+            }
+            last_is_rise = 1;
+        }
+    }
+}
+
+//-------------------- DSHOT输入捕获解码与打印（主循环调用） --------------------
+void dshot_capture_task(void)
+{
+    if (dshot_frame_ready)
+    {
+        uint16_t packet = 0;
+        for (uint8_t i = 0; i < DSHOT_CAPTURE_BUF_LEN; i++)
+        {
+            if (dshot_capture_buf[i] > (DSHOT_GPT_PERIOD_VALUE * 9 / 16))
+                packet |= (1 << (15 - i));
+        }
+        decode_and_print_dshot(packet);
+        dshot_frame_ready = 0;
+    }
+}
+
+// DSHOT发送端定时中断回调（飞控端）
 void dshot_gpt_update_callback(timer_callback_args_t *p_args)
 {
     if(p_args->event == TIMER_EVENT_CYCLE_END)
     {
-        // 更新4路电机占空比
         bsp_gpt_set_duty(GPT_IO_PIN_GTIOCA, g_esc_cmd[0][g_esc_index], 1); // M1(GPT1-A)
         bsp_gpt_set_duty(GPT_IO_PIN_GTIOCB, g_esc_cmd[1][g_esc_index], 1); // M2(GPT1-B)
         bsp_gpt_set_duty(GPT_IO_PIN_GTIOCA, g_esc_cmd[2][g_esc_index], 3); // M3(GPT3-A)
         bsp_gpt_set_duty(GPT_IO_PIN_GTIOCB, g_esc_cmd[3][g_esc_index], 3); // M4(GPT3-B)
-
         g_esc_index++;
-
-        // 帧发送完成，停止中断并清零
         if(g_esc_index == ESC_CMD_BUF_LEN)
         {
             bsp_gpt_base_stop_it();
@@ -31,70 +101,6 @@ void dshot_gpt_update_callback(timer_callback_args_t *p_args)
         }
     }
 }
-
-/*
- * @brief GPT1/GPT3初始化（适配Dshot300）
- */
-fsp_err_t bsp_gpt_init(void)
-{
-    fsp_err_t err = FSP_SUCCESS;
-
-    // 初始化GPT1
-    err = R_GPT_Open(DSHOT_GPT1_INSTANCE, &g_timer1_cfg);
-    if(err != FSP_SUCCESS) return err;
-    err = R_GPT_PeriodSet(DSHOT_GPT1_INSTANCE, DSHOT_GPT_PERIOD_VALUE);
-    if(err != FSP_SUCCESS) return err;
-    err = R_GPT_CallbackSet(DSHOT_GPT1_INSTANCE, dshot_gpt_update_callback, NULL, NULL);
-    if(err != FSP_SUCCESS) return err;
-
-    // 初始化GPT3
-    err = R_GPT_Open(DSHOT_GPT3_INSTANCE, &g_timer3_cfg);
-    if(err != FSP_SUCCESS) return err;
-    err = R_GPT_PeriodSet(DSHOT_GPT3_INSTANCE, DSHOT_GPT_PERIOD_VALUE);
-    if(err != FSP_SUCCESS) return err;
-    err = R_GPT_CallbackSet(DSHOT_GPT3_INSTANCE, dshot_gpt_update_callback, NULL, NULL);
-    if(err != FSP_SUCCESS) return err;
-
-    // 初始化GPT4（仅打开，无错误成员访问）
-    err = R_GPT_Open(&g_timer4_ctrl, &g_timer4_cfg);
-    if(err != FSP_SUCCESS) return err;
-    gpt4_period = DSHOT_GPT_PERIOD_VALUE; // 直接赋值预定义周期
-
-    // 启用GPT
-    R_GPT_Enable(DSHOT_GPT1_INSTANCE);
-    R_GPT_Enable(DSHOT_GPT3_INSTANCE);
-    R_GPT_Enable(&g_timer4_ctrl);
-
-    return err;
-}
-
-
-// 启动 PWM 输出
-fsp_err_t pwm_start(timer_ctrl_t *p_ctrl, gpt_io_pin_t pin)
-{
-    fsp_err_t err = R_GPT_OutputEnable(p_ctrl, pin);  // 使能引脚输出
-    if (FSP_SUCCESS == err)
-    {
-        err = R_GPT_Start(p_ctrl);  // 启动定时器（PWM 开始输出）
-    }
-    return err;
-}
-
-// 停止 PWM 输出
-fsp_err_t pwm_stop(timer_ctrl_t *p_ctrl, gpt_io_pin_t pin)
-{
-    fsp_err_t err = R_GPT_Stop(p_ctrl);  // 停止定时器（PWM 停止输出）
-    if (FSP_SUCCESS == err)
-    {
-        err = R_GPT_OutputDisable(p_ctrl, pin);  // 禁用引脚输出
-    }
-    return err;
-}
-
-
-/*
- * @brief 设置PWM占空比（无未定义符号，duty_count提前声明）
- */
 fsp_err_t bsp_gpt_set_duty(gpt_io_pin_t channel, uint16_t duty, uint8_t gpt_instance)
 {
     uint16_t duty_count = (uint16_t)(((uint32_t)DSHOT_GPT_PERIOD_VALUE * duty) / DSHOT_GPT_PERIOD_VALUE);
@@ -110,116 +116,51 @@ fsp_err_t bsp_gpt_set_duty(gpt_io_pin_t channel, uint16_t duty, uint8_t gpt_inst
     }
     return FSP_ERR_INVALID_DATA;
 }
-
-/*
- *@brief 启动GPT中断
- */
-fsp_err_t bsp_gpt_base_start_it(void)
+// GPT1/GPT3初始化（适配Dshot300）
+fsp_err_t bsp_gpt_init(void)
 {
-    R_GPT_Start(DSHOT_GPT1_INSTANCE);
-    return R_GPT_Start(DSHOT_GPT3_INSTANCE);
-}
+    fsp_err_t err = FSP_SUCCESS;
+    err = R_GPT_Open(DSHOT_GPT1_INSTANCE, &g_timer1_cfg);
+    if(err != FSP_SUCCESS) return err;
+    err = R_GPT_PeriodSet(DSHOT_GPT1_INSTANCE, DSHOT_GPT_PERIOD_VALUE);
+    if(err != FSP_SUCCESS) return err;
 
-/*
-  @brief 停止GPT中断
- */
-fsp_err_t bsp_gpt_base_stop_it(void)
-{
-    R_GPT_Stop(DSHOT_GPT1_INSTANCE);
-    return R_GPT_Stop(DSHOT_GPT3_INSTANCE);
-}
+    err = R_GPT_Open(DSHOT_GPT3_INSTANCE, &g_timer3_cfg);
+    if(err != FSP_SUCCESS) return err;
+    err = R_GPT_PeriodSet(DSHOT_GPT3_INSTANCE, DSHOT_GPT_PERIOD_VALUE);
+    if(err != FSP_SUCCESS) return err;
 
+    err = R_GPT_Open(&g_timer4_ctrl, &g_timer4_cfg);
+    if(err != FSP_SUCCESS) return err;
+    err = R_GPT_CallbackSet(&g_timer4_ctrl, dshot_gpt_update_callback, NULL, NULL);
+    if(err != FSP_SUCCESS) return err;
+    gpt4_period = DSHOT_GPT_PERIOD_VALUE;
 
-/*fsp_err_t bsp_gpt_pwm_start(gpt_io_pin_t channel)
-{
-    if(channel == GPT_IO_PIN_GTIOCA || channel == GPT_IO_PIN_GTIOCB)
-    {
-        return R_GPT_PWM_Start(DSHOT_GPT1_INSTANCE, channel);
-    }
-    else
-    {
-        return R_GPT_PWM_Start(DSHOT_GPT3_INSTANCE, channel);
-    }
-}
+    err = R_GPT_Open(&g_timer0_ctrl, &g_timer0_cfg);
+    if(err != FSP_SUCCESS) return err;
+    err = R_GPT_CallbackSet(&g_timer0_ctrl, gpt0_dshot_capture_callback, NULL, NULL);
+    if(err != FSP_SUCCESS) return err;
 
-
-
-fsp_err_t bsp_gpt_pwm_stop(gpt_io_pin_t channel)
-{
-    if(channel == GPT_IO_PIN_GTIOCA || channel == GPT_IO_PIN_GTIOCB)
-    {
-        return R_GPT_PWM_Stop(DSHOT_GPT1_INSTANCE, channel);
-    }
-    else
-    {
-        return R_GPT_PWM_Stop(DSHOT_GPT3_INSTANCE, channel);
-    }
-}*/
-
-
-/*void Gpt_Init(void)
-{
-    R_GPT_Open(&g_timer4_ctrl, &g_timer4_cfg);
-    R_GPT_Open(&g_timer3_ctrl, &g_timer3_cfg);
-    R_GPT_Open(&g_timer1_ctrl, &g_timer1_cfg);
-
-    R_GPT_InfoGet(&g_timer4_ctrl, &g_timer4);
- //   gpt4_period = info_timer4.period_counts;
-
-    R_GPT_Enable(&g_timer1_ctrl);
-    R_GPT_Enable(&g_timer3_ctrl);
+    R_GPT_Enable(DSHOT_GPT1_INSTANCE);
+    R_GPT_Enable(DSHOT_GPT3_INSTANCE);
     R_GPT_Enable(&g_timer4_ctrl);
-
-    R_GPT_Start(&g_timer4_ctrl);
-    R_GPT_Start(&g_timer3_ctrl);
-    R_GPT_Start(&g_timer1_ctrl);
+    return err;
 }
 
 
-//写入（a,b,c,d）(a,b,c,d在0-100内，表示pwm输出占空比0%-100%),pwm1.2.3.4分别输出a,b,c,d
-void Gpt_Pwm_Setduty(uint8_t gpt1_pwm, uint8_t gpt2_pwm, uint8_t gpt3_pwm, uint8_t gpt4_pwm)
+// 启动 PWM 输出
+fsp_err_t pwm_start(timer_ctrl_t *p_ctrl, gpt_io_pin_t pin)
 {
-    pwm_period = 0;
-    pwm_freq = 0;
-    pwm_duty = 0;
-    pwm_high_level = 0;
-
-    if(gpt1_pwm > 100)
+    fsp_err_t err = R_GPT_OutputEnable(p_ctrl, pin);
+    if (FSP_SUCCESS == err)
     {
-        gpt1_pwm=100;
+        err = R_GPT_Start(p_ctrl);
     }
-    if(gpt2_pwm > 100)
-    {
-        gpt2_pwm=100;
-    }
-    if(gpt3_pwm > 100)
-    {
-        gpt3_pwm=100;
-    }
-    if(gpt4_pwm > 100)
-    {
-        gpt4_pwm=100;
-    }
-
-    R_GPT_InfoGet(&g_timer1_ctrl, &g_timer1);
-
-    duty_count = (g_timer1.period_counts * gpt1_pwm) / 100;
-    R_GPT_DutyCycleSet(&g_timer1_ctrl, duty_count, GPT_IO_PIN_GTIOCA);
-
-    duty_count = (g_timer1.period_counts * gpt2_pwm) / 100;
-    R_GPT_DutyCycleSet(&g_timer1_ctrl, duty_count, GPT_IO_PIN_GTIOCB);
-
-    R_GPT_InfoGet(&g_timer3_ctrl, &g_timer3);
-
-    duty_count = (g_timer3.period_counts * gpt3_pwm) / 100;
-    R_GPT_DutyCycleSet(&g_timer3_ctrl, duty_count, GPT_IO_PIN_GTIOCA);
-
-    duty_count = (g_timer3.period_counts * gpt4_pwm) / 100;
-    R_GPT_DutyCycleSet(&g_timer3_ctrl, duty_count, GPT_IO_PIN_GTIOCB);
+    return err;
 }
 
 
-void gpt4_callback(timer_callback_args_t *p_args)
+/*void gpt4_callback(timer_callback_args_t *p_args)
 {
     static uint32_t t;
         static uint32_t t1;
@@ -260,11 +201,11 @@ void gpt4_callback(timer_callback_args_t *p_args)
         default:
             break;
         }
-}
+}*/
 
 
 
-void Get_Gpt_Pwm(void)
+/*void Get_Gpt_Pwm(void)
 {
     while (1)
     {
